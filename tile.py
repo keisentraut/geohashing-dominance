@@ -35,9 +35,10 @@ url = f"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png"
 if not os.path.isfile(fname):
     print(f"downloading {fname} from {url}")
     headers={'user-agent': 'klaus-openstreetmap@hohenpoelz.de'}
-    r=requests.get(url, headers=headers)
-    with open(fname, 'wb') as f:
-        f.write(r.content)
+    # WARNING: This probably violates OSM policy and I don't really need it - so I commented it out.
+    #r=requests.get(url, headers=headers)
+    #with open(fname, 'wb') as f:
+    #    f.write(r.content)
 
 # we prefilter all geohashes not relevant
 BORDER = 0.04 # 0.018 radians is 1.031 degree
@@ -61,8 +62,7 @@ def getcolor(username):
     return (r,g,b)
 colors = {u:getcolor(u) for u in users}
 
-# username -> list of pixels dominated
-kings = Image.new('RGB', (256,256), (0,0,0))
+dominators = Image.new('RGB', (256,256), (0,0,0))
 tmp = dict.fromkeys(users,0.)
 
 x_width_per_pixel = (maxlon-minlon)/256
@@ -98,5 +98,5 @@ for i in range(256):
                 #print(f"winner at N{lat/pi*180} E{lon/pi*180} is {max_user} {colors[max_user]}")
         lat -= y_width_per_pixel
     lon += x_width_per_pixel
-kings.save(f"output/{zoom}/{x}/{y}.png")
+dominators.save(f"output/{zoom}/{x}/{y}.png")
 
