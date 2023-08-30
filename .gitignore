@@ -1,0 +1,6 @@
+/target
+osmcache/
+colors.txt
+alldata.js
+*.png
+.idea/
