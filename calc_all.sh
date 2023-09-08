@@ -14,14 +14,15 @@ python colors.py
 for zoom in $(seq 0 9); do
 	for x in $(seq 0 $((2**zoom-1)) ); do
 		mkdir -p output/$zoom/$x/
-		mkdir -p cache/$zoom/$x/
+		mkdir -p osmcache/$zoom/$x/
 		for y in $(seq 0 $((2**zoom-1)) ); do
     			echo python ./tile.py $zoom $x $y
 		done
 	done
 done | parallel -j 8 # 8 CPU cores
 
+mkdir -p combined/
 # larger than zoom level 8 is too big for my RAM - final image is too large
-for zoom in $(seq 0 8); do
+for zoom in $(seq 0 5); do
 	python ./combine.py $zoom	
 done

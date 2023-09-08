@@ -10,6 +10,7 @@ import random
 import sys
 import time
 import hashlib
+import colorsys
 
 # usage: ./tile.py zoom x y 
 zoom,x,y = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
@@ -41,7 +42,7 @@ if not os.path.isfile(fname):
     #    f.write(r.content)
 
 # we prefilter all geohashes not relevant
-BORDER = 0.04 # 0.018 radians is 1.031 degree
+BORDER = 0.05 # 0.018 radians is 1.031 degree. 0.05 radians is most often more than 100km except in some very north locations
 data = [i for i in data if minlat-BORDER < i[1] < maxlat+BORDER]
 data = [i for i in data if minlon-BORDER < i[2] < maxlon+BORDER]
 users = set()
@@ -49,18 +50,18 @@ for i in data:
     users |= set(i[3])
 print(f"after prefiltering there are {len(data)} hashes and {len(users)} users left")
 
-# deterministic color selection
-def getcolor(username):
-    HARD_COLORS= {"Klaus":(255,0,0), "Fippe":(0,255,0), "GeorgDerReisende":(0,0,255)}
-    if username in HARD_COLORS:
-        return HARD_COLORS[username]
-    r,g,b = 0,0,0
-    username=username.encode('utf8')
-    while not r+g+b > 256 and r+g+b<256*3-256: # not too dark and not too light
-        username = hashlib.md5(username).digest() 
-        r,g,b = username[0], username[1], username[2]
-    return (r,g,b)
-colors = {u:getcolor(u) for u in users}
+# deterministic color selection based on username
+with open("colors.json", "r") as f:
+    colors = json.loads(f.read()) 
+colors = {i:(j[0],j[1],j[2]) for i,j in colors.items()}
+
+# checkerboard function recommended in discord by Stevage
+def getmaxuser(tmp, i,j):
+    max_count = max(tmp.values())
+    max_users = {user: count for user, count in tmp.items() if count == max_count}
+    sorted_users = sorted(max_users.items(), key=lambda x: x[0])
+    v = (i//10+j//10)
+    return sorted_users[v % len(sorted_users)][0]
 
 dominators = Image.new('RGB', (256,256), (0,0,0))
 tmp = dict.fromkeys(users,0.)
@@ -92,9 +93,9 @@ for i in range(256):
                         for geouser in geohash[3]:
                             tmp[geouser] += w
         if tmp:
-            max_user = max(tmp, key=tmp.get)
+            max_user = getmaxuser(tmp, i, j)
             if tmp[max_user] > 0:
-                kings.putpixel([i,j], colors[max_user])
+                dominators.putpixel([i,j], colors[max_user])
                 #print(f"winner at N{lat/pi*180} E{lon/pi*180} is {max_user} {colors[max_user]}")
         lat -= y_width_per_pixel
     lon += x_width_per_pixel
