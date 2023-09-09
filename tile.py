@@ -65,7 +65,7 @@ def getmaxuser(tmp, i,j):
 
 # weight function, input is in multiples of 10km
 def getweight(d):
-    if d>10: return 0 # cutoff at 100km
+    if d>1: return 0 # cutoff at 100km
     # weights in 0, 10, 20, .., 100km are [1.0, 0.81, 0.64, 0.49, 0.36, 0.25, 0.16, 0.09, 0.04, 0.01, 0.0]
     # calculated by [round((1-d/100)*(1-d/100),4) for d in range(0,101,10)]
     return (1-d)*(1-d)
@@ -78,32 +78,33 @@ y_width_per_pixel = (maxlat-minlat)/256
 
 lon,lat = minlon, maxlat
 lon = minlon + (x_width_per_pixel*0.5) # use center of pixel
-for i in range(256):
-    lat = maxlat - (y_width_per_pixel*0.5) # use center of pixel
-    for j in range(256):
-        # reset weights
-        for index in tmp: 
-            tmp[index] = 0. 
-        for geohash in data:
-            geolat, geolon = geohash[1], geohash[2]
-            dlon = geolon - lon
-            dlat = geolat - lat
-            if -BORDER <= dlon <= BORDER:
-                if -BORDER <= dlat <= BORDER:
-                    # https://stackoverflow.com/questions/4913349/haversine-formula-in-python-bearing-and-distance-between-two-gps-points/4913653#4913653
-                    a = sin(dlat/2)**2 + cos(lat) * cos(geolat) * sin(dlon/2)**2
-                    # This would be correct: d = 12742 * asin(sqrt(a)) 
-                    # but we want multiples of 100km, so divide by 100
-                    d = 127.42 * asin(sqrt(a)) 
-                    w = getweight(d)
-                    for geouser in geohash[3]:
-                        tmp[geouser] += w
-        if tmp:
-            max_user = getmaxuser(tmp, i, j)
-            if tmp[max_user] > 0:
-                dominators.putpixel([i,j], colors[max_user])
-                #print(f"winner at N{lat/pi*180} E{lon/pi*180} is {max_user} {colors[max_user]}")
-        lat -= y_width_per_pixel
-    lon += x_width_per_pixel
+if len(data)>0:
+    for i in range(256):
+        lat = maxlat - (y_width_per_pixel*0.5) # use center of pixel
+        for j in range(256):
+            # reset weights
+            for index in tmp: 
+                tmp[index] = 0. 
+            for geohash in data:
+                geolat, geolon = geohash[1], geohash[2]
+                dlon = geolon - lon
+                dlat = geolat - lat
+                if -BORDER <= dlon <= BORDER:
+                    if -BORDER <= dlat <= BORDER:
+                        # https://stackoverflow.com/questions/4913349/haversine-formula-in-python-bearing-and-distance-between-two-gps-points/4913653#4913653
+                        a = sin(dlat/2)**2 + cos(lat) * cos(geolat) * sin(dlon/2)**2
+                        # This would be correct: d = 12742 * asin(sqrt(a)) 
+                        # but we want multiples of 100km, so divide by 100
+                        d = 127.42 * asin(sqrt(a)) 
+                        w = getweight(d)
+                        for geouser in geohash[3]:
+                            tmp[geouser] += w
+            if tmp:
+                max_user = getmaxuser(tmp, i, j)
+                if tmp[max_user] > 0:
+                    dominators.putpixel([i,j], colors[max_user])
+                    #print(f"winner at N{lat/pi*180} E{lon/pi*180} is {max_user} {colors[max_user]}")
+            lat -= y_width_per_pixel
+        lon += x_width_per_pixel
 dominators.save(f"output/{zoom}/{x}/{y}.png")
 
