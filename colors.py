@@ -23,13 +23,13 @@ def getcolor(username):
     username = hashlib.md5(username).digest()
     # we want colors in HSL space 
     # hue 0-360, saturation 0.5-1 and luminosity 0.25-0.75.
-    s = 0.5 + username[0]/512
-    l = 0.25  + username[1]/512
-    h = int.from_bytes(username[2:], "big") % 360
-    colorsys.hls_to_rgb(h, l, s)
+    h = int.from_bytes(username[0:2], "big") / (256*256) # use two bytes because we have 360 options
+    s = 0.5 + username[2]/512
+    l = 0.25  + username[3]/512
     # convert HSL -> RGB
     r,g,b = colorsys.hls_to_rgb(h,l,s)
     r,g,b = int(r*256), int(g*256), int(b*256)
+    print(f"HSL({h}, {s}, {l}) == RGB({r}, {g}, {b})")
     return (r,g,b)
 colors = {u:getcolor(u) for u in users}
 

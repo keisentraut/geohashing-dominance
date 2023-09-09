@@ -42,7 +42,7 @@ if not os.path.isfile(fname):
     #    f.write(r.content)
 
 # we prefilter all geohashes not relevant
-BORDER = 0.05 # 0.018 radians is 1.031 degree. 0.05 radians is most often more than 100km except in some very north locations
+BORDER = 0.03 # 0.03 radians is 1.71 degree which is most often more than 100km except in some very north locations
 data = [i for i in data if minlat-BORDER < i[1] < maxlat+BORDER]
 data = [i for i in data if minlon-BORDER < i[2] < maxlon+BORDER]
 users = set()
@@ -62,6 +62,13 @@ def getmaxuser(tmp, i,j):
     sorted_users = sorted(max_users.items(), key=lambda x: x[0])
     v = (i//10+j//10)
     return sorted_users[v % len(sorted_users)][0]
+
+# weight function, input is in multiples of 10km
+def getweight(d):
+    if d>10: return 0 # cutoff at 100km
+    # weights in 0, 10, 20, .., 100km are [1.0, 0.81, 0.64, 0.49, 0.36, 0.25, 0.16, 0.09, 0.04, 0.01, 0.0]
+    # calculated by [round((1-d/100)*(1-d/100),4) for d in range(0,101,10)]
+    return (1-d)*(1-d)
 
 dominators = Image.new('RGB', (256,256), (0,0,0))
 tmp = dict.fromkeys(users,0.)
@@ -86,12 +93,11 @@ for i in range(256):
                     # https://stackoverflow.com/questions/4913349/haversine-formula-in-python-bearing-and-distance-between-two-gps-points/4913653#4913653
                     a = sin(dlat/2)**2 + cos(lat) * cos(geolat) * sin(dlon/2)**2
                     # This would be correct: d = 12742 * asin(sqrt(a)) 
-                    # but we want 1/(d*d+1) == 0.5 if the distance is 10km, so we divide by 10
-                    d = 1274.2 * asin(sqrt(a)) 
-                    if d < 10: # less than 100km
-                        w = 1/(d*d + 1)
-                        for geouser in geohash[3]:
-                            tmp[geouser] += w
+                    # but we want multiples of 100km, so divide by 100
+                    d = 127.42 * asin(sqrt(a)) 
+                    w = getweight(d)
+                    for geouser in geohash[3]:
+                        tmp[geouser] += w
         if tmp:
             max_user = getmaxuser(tmp, i, j)
             if tmp[max_user] > 0:
